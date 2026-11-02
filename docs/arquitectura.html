@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Arquitectura SweepSense</title>
+<style>
+  body{margin:0;background:#F4F6F5;font-family:"IBM Plex Sans","Liberation Sans",Arial,sans-serif}
+  svg{display:block}
+  .eyebrow{font:700 15px "Liberation Sans",Arial;letter-spacing:2px;fill:#0E6E66}
+  .h1{font:700 40px "Liberation Sans",Arial;fill:#14201C}
+  .t{font:700 19px "Liberation Sans",Arial;fill:#14201C}
+  .s{font:400 14.5px "Liberation Sans",Arial;fill:#5A6775}
+  .g{font:700 13px "Liberation Sans",Arial;letter-spacing:1.6px;fill:#0E6E66}
+  .chip{font:600 14px "Liberation Sans",Arial;fill:#0E4F49}
+  .lab{font:700 13.5px "Liberation Sans",Arial}
+  .lab2{font:400 12.5px "Liberation Sans",Arial;fill:#5A6775}
+  .box{fill:#fff;stroke:#D5DCE3;stroke-width:1.5}
+  .hl{fill:#E1EFEC;stroke:#0E6E66;stroke-width:1.8}
+</style></head><body>
+<svg width="1334" height="750" viewBox="0 0 1334 750" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="aS" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0E6E66"/></marker>
+    <marker id="aH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2471A3"/></marker>
+    <marker id="aM" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C9790B"/></marker>
+  </defs>
+
+  <text x="84" y="88" class="eyebrow">03 · ARQUITECTURA</text>
+  <text x="84" y="135" class="h1">Arquitectura del sistema</text>
+
+  <!-- Grupo: a bordo del robot -->
+  <rect x="64" y="165" width="580" height="500" rx="16" fill="#E6EFEC" stroke="#9CC2B9" stroke-dasharray="6 5"/>
+  <text x="88" y="195" class="g">A BORDO DEL ROBOT</text>
+
+  <!-- Sensores -->
+  <rect x="88" y="215" width="210" height="110" rx="12" class="box"/>
+  <text x="108" y="252" class="t">Sensores</text>
+  <text x="108" y="278" class="s">17 sensores · 9 tipos</text>
+  <text x="108" y="300" class="s">ToF, IR, IMU, INA219, fuga</text>
+
+  <!-- ESP32 -->
+  <rect x="88" y="365" width="210" height="120" rx="12" class="hl"/>
+  <text x="108" y="402" class="t">ESP32</text>
+  <text x="108" y="428" class="s">Lee sensores y mueve</text>
+  <text x="108" y="450" class="s">actuadores · paro de</text>
+  <text x="108" y="472" class="s">seguridad propio</text>
+
+  <!-- Actuadores -->
+  <rect x="88" y="525" width="210" height="110" rx="12" class="box"/>
+  <text x="108" y="562" class="t">Actuadores</text>
+  <text x="108" y="588" class="s">Motores, turbina,</text>
+  <text x="108" y="610" class="s">cepillo y bomba</text>
+
+  <line x1="193" y1="325" x2="193" y2="361" stroke="#0E6E66" stroke-width="2" marker-end="url(#aS)"/>
+  <line x1="193" y1="485" x2="193" y2="521" stroke="#0E6E66" stroke-width="2" marker-end="url(#aS)"/>
+
+  <!-- Raspberry Pi -->
+  <rect x="380" y="215" width="240" height="420" rx="12" class="hl"/>
+  <text x="400" y="252" class="t">Raspberry Pi 4</text>
+  <text x="400" y="276" class="s">Servidor central</text>
+  <g>
+    <rect x="400" y="298" width="200" height="54" rx="9" fill="#fff" stroke="#BFD8D2"/>
+    <text x="414" y="321" class="chip">Navegación y mapa</text>
+    <text x="414" y="340" class="lab2">Ruta, evasión, regreso</text>
+    <rect x="400" y="362" width="200" height="54" rx="9" fill="#fff" stroke="#BFD8D2"/>
+    <text x="414" y="385" class="chip">Base de datos SQLite</text>
+    <text x="414" y="404" class="lab2">Sesiones, eventos, celdas</text>
+    <rect x="400" y="426" width="200" height="54" rx="9" fill="#fff" stroke="#9EC1E0"/>
+    <text x="414" y="449" class="chip" style="fill:#1D5F8E">API HTTP (Flask)</text>
+    <text x="414" y="468" class="lab2">Estado, mapa, comandos</text>
+    <rect x="400" y="490" width="200" height="54" rx="9" fill="#fff" stroke="#E9C489"/>
+    <text x="414" y="513" class="chip" style="fill:#9A5D06">Broker MQTT</text>
+    <text x="414" y="532" class="lab2">Mosquitto</text>
+    <rect x="400" y="554" width="200" height="54" rx="9" fill="#fff" stroke="#D5DCE3" stroke-dasharray="4 3"/>
+    <text x="414" y="577" class="chip" style="fill:#5A6775">Coral + cámara</text>
+    <text x="414" y="596" class="lab2">Bonus: reconocer objetos</text>
+  </g>
+
+  <!-- ESP32 <-> Pi : Serial -->
+  <line x1="302" y1="425" x2="376" y2="425" stroke="#0E6E66" stroke-width="2.4" marker-start="url(#aS)" marker-end="url(#aS)"/>
+  <text x="339" y="410" text-anchor="middle" class="lab" fill="#0E6E66">Serial</text>
+  <text x="339" y="448" text-anchor="middle" class="lab2">USB · 20 Hz</text>
+
+  <!-- App -->
+  <rect x="790" y="190" width="250" height="120" rx="12" class="box"/>
+  <text x="810" y="227" class="t">App SweepSense</text>
+  <text x="810" y="253" class="s">React Native + Expo</text>
+  <text x="810" y="275" class="s">Celular y página web</text>
+  <text x="810" y="297" class="s">5+ indicadores · control</text>
+  <path d="M 624 260 L 786 260" stroke="#2471A3" stroke-width="2.4" fill="none" marker-start="url(#aH)" marker-end="url(#aH)"/>
+  <text x="705" y="245" text-anchor="middle" class="lab" fill="#2471A3">HTTP</text>
+  <text x="705" y="282" text-anchor="middle" class="lab2">REST · JSON</text>
+
+  <!-- Alexa -->
+  <rect x="790" y="350" width="250" height="100" rx="12" class="box"/>
+  <text x="810" y="387" class="t">Alexa</text>
+  <text x="810" y="413" class="s">Iniciar, pausar y</text>
+  <text x="810" y="435" class="s">regresar por voz</text>
+  <path d="M 786 400 L 624 400" stroke="#2471A3" stroke-width="2.4" fill="none" marker-end="url(#aH)"/>
+  <text x="705" y="385" text-anchor="middle" class="lab" fill="#2471A3">HTTP</text>
+  <text x="705" y="422" text-anchor="middle" class="lab2">POST /comando</text>
+
+  <!-- Estación -->
+  <rect x="790" y="490" width="250" height="130" rx="12" class="box"/>
+  <text x="810" y="527" class="t">Estación base</text>
+  <text x="810" y="553" class="s">ESP8266 · faro IR</text>
+  <text x="810" y="575" class="s">y monitor de carga</text>
+  <text x="810" y="597" class="s">(INA219, LEDs)</text>
+  <path d="M 786 545 L 624 545" stroke="#C9790B" stroke-width="2.4" fill="none" marker-start="url(#aM)" marker-end="url(#aM)"/>
+  <text x="705" y="530" text-anchor="middle" class="lab" fill="#C9790B">MQTT</text>
+  <text x="705" y="567" text-anchor="middle" class="lab2">Wi-Fi · cada 2 s</text>
+
+  <!-- Faro IR al robot -->
+  <path d="M 915 620 L 915 690 L 50 690 L 50 270 L 84 270"stroke="#8A95A1" stroke-width="1.8" fill="none" stroke-dasharray="6 5" marker-end="url(#aS)"/>
+  <text x="560" y="710" text-anchor="middle" class="lab2">Señal infrarroja del faro → receptor TSOP del robot (guía de regreso)</text>
+
+  <!-- Protocolos -->
+  <rect x="1080" y="190" width="200" height="290" rx="12" class="box"/>
+  <text x="1100" y="222" class="g">PROTOCOLOS</text>
+  <line x1="1100" y1="252" x2="1140" y2="252" stroke="#0E6E66" stroke-width="3"/>
+  <text x="1150" y="257" class="chip">Serial</text>
+  <text x="1100" y="278" class="lab2">ESP32 ↔ Raspberry Pi</text>
+  <line x1="1100" y1="314" x2="1140" y2="314" stroke="#2471A3" stroke-width="3"/>
+  <text x="1150" y="319" class="chip" style="fill:#1D5F8E">HTTP</text>
+  <text x="1100" y="340" class="lab2">App y Alexa ↔ API</text>
+  <line x1="1100" y1="376" x2="1140" y2="376" stroke="#C9790B" stroke-width="3"/>
+  <text x="1150" y="381" class="chip" style="fill:#9A5D06">MQTT</text>
+  <text x="1100" y="402" class="lab2">Estación ↔ broker</text>
+  <line x1="1100" y1="438" x2="1140" y2="438" stroke="#8A95A1" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="1150" y="443" class="chip" style="fill:#5A6775">IR</text>
+  <text x="1100" y="464" class="lab2">Faro → robot</text>
+
+  <rect x="1080" y="500" width="200" height="120" rx="12" fill="#E1EFEC" stroke="#9CC2B9"/>
+  <text x="1100" y="530" class="g">INTERNET</text>
+  <text x="1100" y="556" class="lab2">La API se publica con un</text>
+  <text x="1100" y="576" class="lab2">túnel HTTPS (Cloudflare</text>
+  <text x="1100" y="596" class="lab2">Tunnel o ngrok)</text>
+</svg>
+</body></html>
