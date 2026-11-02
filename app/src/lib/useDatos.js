@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useIsFocused } from 'expo-router';
 import { alCambiarConfig } from './api';
 
 // Pide datos al iniciar y luego cada `cadaMs` milisegundos (tiempo real por consulta HTTP).
+// Solo consulta mientras la pantalla está visible, para no cargar de más a la Raspberry Pi.
 export function useDatos(pedir, cadaMs = 2000, deps = []) {
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
   const vivo = useRef(true);
+  const visible = useIsFocused();
 
   const refrescar = useCallback(async () => {
     try {
@@ -18,12 +21,13 @@ export function useDatos(pedir, cadaMs = 2000, deps = []) {
   }, deps);
 
   useEffect(() => {
+    if (!visible) return undefined;
     vivo.current = true;
     refrescar();
     const t = cadaMs ? setInterval(refrescar, cadaMs) : null;
     const quitar = alCambiarConfig(() => { setDatos(null); refrescar(); });
     return () => { vivo.current = false; if (t) clearInterval(t); quitar(); };
-  }, [refrescar, cadaMs]);
+  }, [refrescar, cadaMs, visible]);
 
   return { datos, error, refrescar, cargando: !datos && !error };
 }
