@@ -30,8 +30,9 @@ def bateria_pct(mv):
 
 
 class Puente:
-    def __init__(self, enviar):
+    def __init__(self, enviar, marcar_obstaculos=True):
         self.enviar = enviar           # función que manda una línea al ESP32
+        self.marcar_obstaculos = marcar_obstaculos
         self.modo = "en_espera"
         self.nav = Navegacion()
         self.x = (db.BASE[0] + 0.5) * db.CELDA_M
@@ -93,8 +94,15 @@ class Puente:
             self.ultimo_choque = time.time()
             db.evento(con, "obstaculo", f"Obstáculo en ({cx}, {cy})")
             ox, oy = cx + round(math.sin(math.radians(yaw))), cy - round(math.cos(math.radians(yaw)))
-            if 0 <= ox < db.ANCHO and 0 <= oy < db.ALTO:
-                db.marcar_obstaculo(con, ox, oy)
+            # Solo se marca si esa celda no se limpió ya en esta sesión (si el robot pasó, no es obstáculo fijo)
+            if self.marcar_obstaculos and 0 <= ox < db.ANCHO and 0 <= oy < db.ALTO:
+                ya_pasado = con.execute(
+                    """SELECT 1 FROM sesion_celda sc JOIN celdas_en_mapa c USING (id_celda)
+                       WHERE sc.id_sesion = ? AND c.cx = ? AND c.cy = ?""",
+                    (db.sesion_activa(con), ox, oy),
+                ).fetchone()
+                if not ya_pasado:
+                    db.marcar_obstaculo(con, ox, oy)
         if fuga and not self.fuga_antes:
             self.enviar("C,0,0,0")
             self.modo = "pausado"
@@ -203,7 +211,7 @@ def main():
 
     if args.simular:
         sim = RobotSimulado()
-        puente = Puente(sim.escribir)
+        puente = Puente(sim.escribir, marcar_obstaculos=False)  # los choques simulados no crean obstáculos
         print("Robot simulado corriendo. Ctrl+C para salir.")
         while True:
             with db.conectar() as con:

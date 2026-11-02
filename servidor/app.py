@@ -38,9 +38,23 @@ def segundos_desde(iso):
     return (datetime.now() - datetime.fromisoformat(iso)).total_seconds()
 
 
+FILTRO_ZONA = {"izquierda": "AND c.cx <= 4", "derecha": "AND c.cx >= 5"}
+
+
 def celdas_zona(con, zona):
-    filtro = {"izquierda": "AND cx <= 4", "derecha": "AND cx >= 5"}.get(zona, "")
-    return con.execute(f"SELECT COUNT(*) FROM celdas_en_mapa WHERE es_obstaculo = 0 {filtro}").fetchone()[0]
+    """Celdas que se pueden limpiar en la zona (sin obstáculos)."""
+    filtro = FILTRO_ZONA.get(zona, "")
+    return con.execute(f"SELECT COUNT(*) FROM celdas_en_mapa c WHERE c.es_obstaculo = 0 {filtro}").fetchone()[0]
+
+
+def celdas_limpias(con, id_sesion, zona):
+    """Celdas recorridas que cuentan para la cobertura: dentro de la zona y sin obstáculo."""
+    filtro = FILTRO_ZONA.get(zona, "")
+    return con.execute(
+        f"""SELECT COUNT(*) FROM sesion_celda sc JOIN celdas_en_mapa c USING (id_celda)
+            WHERE sc.id_sesion = ? AND c.es_obstaculo = 0 {filtro}""",
+        (id_sesion,),
+    ).fetchone()[0]
 
 
 def celdas_sesion(con, id_sesion):
@@ -55,6 +69,7 @@ def celdas_sesion(con, id_sesion):
 def sesion_json(con, s, con_celdas=True):
     celdas = celdas_sesion(con, s["id_sesion"])
     total = max(1, celdas_zona(con, s["zona"]))
+    limpias = min(celdas_limpias(con, s["id_sesion"], s["zona"]), total)
     obstaculos = con.execute(
         "SELECT COUNT(*) FROM eventos WHERE id_sesion = ? AND tipo = 'obstaculo'", (s["id_sesion"],)
     ).fetchone()[0]
@@ -66,9 +81,9 @@ def sesion_json(con, s, con_celdas=True):
         "hora_fin": s["hora_fin"],
         "bateria_inicio": s["bateria_inicio"],
         "bateria_final": s["bateria_final"],
-        "area_m2": round(len(celdas) * db.CELDA_M ** 2, 2),
+        "area_m2": round(limpias * db.CELDA_M ** 2, 2),
         "area_total_m2": round(total * db.CELDA_M ** 2, 2),
-        "cobertura": round(100 * len(celdas) / total),
+        "cobertura": round(100 * limpias / total),
         "obstaculos": obstaculos,
     }
     if con_celdas:
