@@ -5,8 +5,10 @@ puente serial (puente_robot.py) y de la estación base por MQTT (mqtt_estacion.p
 o por HTTP (POST /api/estacion).
 
 Ejecutar:  python3 app.py           -> http://<ip-de-la-pi>:5000
+           PUERTO=5050 python3 app.py   (en Mac, donde AirPlay ocupa el 5000)
 """
 import json
+import os
 from datetime import datetime
 
 from flask import Flask, jsonify, request
@@ -251,4 +253,4 @@ def estacion():
 
 if __name__ == "__main__":
     db.crear()
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PUERTO", 5000)), debug=False)
