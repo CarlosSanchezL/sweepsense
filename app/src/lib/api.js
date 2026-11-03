@@ -66,5 +66,10 @@ export const api = {
     esDemo()
       ? new Promise((ok, mal) => { try { ok(demo.comando(cuerpo)); } catch (e) { mal(e); } })
       : http('/comando', { method: 'POST', body: JSON.stringify(cuerpo) }),
+  // Guardar una limpieza para después (queda en "Pendientes")
+  crearTarea: (cuerpo) =>
+    esDemo() ? Promise.resolve(demo.crearTarea(cuerpo)) : http('/tareas', { method: 'POST', body: JSON.stringify(cuerpo) }),
+  // Historial de lecturas para las gráficas (batería, voltaje, corriente)
+  lecturas: (minutos = 30) => (esDemo() ? Promise.resolve(demo.lecturas(minutos)) : http(`/lecturas?minutos=${minutos}&puntos=120`)),
   simularFuga: (v) => demo.simularFuga(v),
 };

@@ -23,6 +23,14 @@ export default function Tareas() {
   const [tipo, setTipo] = useState('aspirar');
   const [enviando, setEnviando] = useState(false);
 
+  // Deja la limpieza en "Pendientes" para iniciarla después con el ▶
+  const guardar = async (cuerpo) => {
+    setEnviando(true);
+    try { await api.crearTarea(cuerpo); await refrescar(); setPestana('pendiente'); }
+    catch (e) { avisar('No se pudo guardar', e.message); }
+    finally { setEnviando(false); }
+  };
+
   const iniciar = async (cuerpo) => {
     setEnviando(true);
     try { await api.comando({ accion: 'iniciar', ...cuerpo }); await refrescar(); setPestana('en_proceso'); }
@@ -41,7 +49,10 @@ export default function Tareas() {
         <Text style={est.fuerte}>Nueva limpieza</Text>
         <Opciones valor={zona} cambiar={setZona} opciones={Object.entries(nombreZona)} />
         <Opciones valor={tipo} cambiar={setTipo} opciones={Object.entries(nombreTipo)} />
-        <Boton titulo="Iniciar ahora" icono="play" deshabilitado={enviando} onPress={() => iniciar({ zona, tipo })} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Boton style={{ flex: 1 }} titulo="Iniciar ahora" icono="play" deshabilitado={enviando} onPress={() => iniciar({ zona, tipo })} />
+          <Boton style={{ flex: 1 }} tipo="secundario" titulo="Guardar" icono="bookmark-outline" deshabilitado={enviando} onPress={() => guardar({ zona, tipo })} />
+        </View>
       </Tarjeta>
 
       <View style={est.pestanas}>

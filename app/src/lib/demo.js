@@ -77,6 +77,7 @@ const s = {
   ],
   eventos: [],
   idEvento: 1,
+  lecturas: [],
 };
 
 function evento(tipo, detalle) {
@@ -110,7 +111,20 @@ function avanzar() {
   const pasos = Math.min(Math.floor((ahora() - s.ultimo) / 1000), 30);
   if (pasos <= 0) return;
   s.ultimo += pasos * 1000;
-  for (let i = 0; i < pasos; i++) paso();
+  for (let i = 0; i < pasos; i++) {
+    paso();
+    const t = s.ultimo - (pasos - 1 - i) * 1000;
+    if (Math.floor(t / 1000) % 5 === 0) grabarLectura(t); // una lectura cada 5 s
+  }
+}
+
+// Historial de lecturas para las gráficas (como la tabla `lecturas` de la Pi)
+function grabarLectura(t, modo = s.modo, bateria = s.bateria) {
+  s.lecturas.push({
+    momento: iso(t), modo, bateria: Math.round(bateria), voltaje: voltaje(bateria),
+    corriente_ma: corriente(modo) + Math.round(Math.random() * 80 - 40), fuga: s.fuga ? 1 : 0,
+  });
+  if (s.lecturas.length > 720) s.lecturas.shift(); // una hora como máximo
 }
 
 function paso() {
@@ -160,6 +174,20 @@ function paso() {
 
 const voltaje = (b) => +(10.5 + (12.6 - 10.5) * (b / 100)).toFixed(2);
 const corriente = (modo) => ({ limpiando: 2600, regresando: 900, pausado: 650, cargando: -1500 }[modo] ?? 600);
+
+// Los últimos 30 minutos simulados (una limpieza, el regreso y la carga), para que la gráfica no empiece vacía
+(function sembrarLecturas() {
+  const fin = ahora();
+  for (let seg = 30 * 60; seg > 0; seg -= 5) {
+    const min = (30 * 60 - seg) / 60; // minuto 0 a 30
+    let modo = 'en_espera', b = 96;
+    if (min >= 3 && min < 17) { modo = 'limpiando'; b = 96 - (min - 3) * 1.1; }
+    else if (min >= 17 && min < 19) { modo = 'regresando'; b = 80.6 - (min - 17) * 0.3; }
+    else if (min >= 19 && min < 27) { modo = 'cargando'; b = 80 + (min - 19) * 0.75; }
+    else if (min >= 27) { modo = 'en_espera'; b = 86; }
+    grabarLectura(fin - seg * 1000, modo, b);
+  }
+})();
 
 export function estado() {
   avanzar();
@@ -250,6 +278,19 @@ export function comando({ accion, zona = 'completa', tipo = 'aspirar', tarea_id 
 }
 
 // Solo en demo: para enseñar la alerta de fuga en la presentación
+export function lecturas(minutos = 30) {
+  avanzar();
+  const desde = ahora() - minutos * 60000;
+  return s.lecturas.filter((l) => new Date(l.momento).getTime() >= desde);
+}
+
+export function crearTarea({ zona = 'completa', tipo = 'aspirar' }) {
+  const id = Math.max(0, ...s.tareas.map((t) => t.id)) + 1;
+  s.tareas.push({ id, zona, tipo, estado: 'pendiente' });
+  evento('comando', `Tarea guardada: ${zona}, ${tipo}`);
+  return { ok: true, id };
+}
+
 export function simularFuga(valor) {
   s.fuga = valor;
   evento(valor ? 'fuga' : 'sistema', valor ? 'Sensor de fuga activado' : 'Sensor de fuga seco');

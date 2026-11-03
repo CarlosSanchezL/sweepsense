@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Pantalla from '../../components/Pantalla';
 import MapaRobot from '../../components/MapaRobot';
+import Grafica from '../../components/Grafica';
 import { Aviso, Cargando, Indicador, Seccion, Tarjeta, Titulo } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useDatos, fechaCorta, minutosEntre } from '../../lib/useDatos';
@@ -13,6 +14,7 @@ const promedio = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length 
 export default function Historial() {
   const { datos: ses, error, refrescar } = useDatos(api.sesiones, 5000);
   const { datos: m } = useDatos(() => api.mapa(), 0);
+  const { datos: lecturas } = useDatos(() => api.lecturas(30), 5000);
 
   const lista = ses ?? [];
   const minutos = lista.map((s) => minutosEntre(s.hora_inicio, s.hora_fin));
@@ -35,6 +37,17 @@ export default function Historial() {
             <Indicador icono="time-outline" valor={`${Math.round(promedio(minutos))} min`} etiqueta="Duración prom." />
             <Indicador icono="battery-half" valor={`${promedio(consumo).toFixed(1)}%/min`} etiqueta="Consumo de batería" />
           </View>
+
+          <Seccion>Batería · últimos 30 min (%)</Seccion>
+          <Tarjeta>
+            <Grafica datos={lecturas} campo="bateria" unidad="%" paso={10} max={100} />
+          </Tarjeta>
+
+          <Seccion>Corriente · últimos 30 min (mA)</Seccion>
+          <Tarjeta style={{ gap: 6 }}>
+            <Grafica datos={lecturas} campo="corriente_ma" unidad="mA" paso={500} cero />
+            <Text style={est.sub}>Positiva = consume batería · negativa = se está cargando</Text>
+          </Tarjeta>
 
           <Seccion>Limpiezas</Seccion>
           {lista.map((s) => (

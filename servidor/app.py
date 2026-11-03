@@ -9,7 +9,7 @@ Ejecutar:  python3 app.py           -> http://<ip-de-la-pi>:5000
 """
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Flask, jsonify, request
 
@@ -178,15 +178,23 @@ def eventos():
 
 @app.get("/api/lecturas")
 def lecturas():
-    """Historial de lecturas para gráficas (por ejemplo batería en el tiempo)."""
+    """Historial de lecturas para gráficas (por ejemplo batería en el tiempo).
+    ?minutos=30  ventana de tiempo  ·  ?puntos=120  máximo de puntos (se reparten parejo)"""
     minutos = request.args.get("minutos", 30, type=int)
+    puntos = max(2, request.args.get("puntos", 120, type=int))
+    desde = (datetime.now() - timedelta(minutes=minutos)).isoformat(timespec="seconds")
     with db.conectar() as con:
         filas = con.execute(
             "SELECT momento, modo, bateria, voltaje, corriente_ma, fuga FROM lecturas "
-            "WHERE momento >= datetime('now', 'localtime', ?) ORDER BY id",
-            (f"-{minutos} minutes",),
+            "WHERE momento >= ? ORDER BY id",
+            (desde,),
         ).fetchall()
-        return jsonify([dict(f) for f in filas])
+    # Hay una lectura cada 0.5 s; para la gráfica basta con unos cuantos puntos
+    paso = max(1, len(filas) // puntos)
+    elegidas = filas[::paso]
+    if filas and elegidas[-1] is not filas[-1]:
+        elegidas.append(filas[-1])
+    return jsonify([dict(f) for f in elegidas])
 
 
 # ---------- Escritura ----------
