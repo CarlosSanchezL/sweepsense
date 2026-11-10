@@ -272,17 +272,32 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--puerto", default="/dev/ttyUSB0")
     ap.add_argument("--simular", action="store_true", help="no usa el ESP32; simula el robot")
+    ap.add_argument("--ver", action="store_true", help="en --simular, también muestra las órdenes de motores (M,...)")
     args = ap.parse_args()
     db.crear()
 
     if args.simular:
         sim = RobotSimulado()
-        puente = Puente(sim.escribir, marcar_obstaculos=False)  # los choques simulados no crean obstáculos
+
+        def enviar(linea):
+            # Muestra en pantalla cada orden que la Pi le manda al robot
+            if not linea.startswith("M,") or args.ver:
+                print(f"  Pi → robot   {linea}", flush=True)
+            sim.escribir(linea)
+
+        puente = Puente(enviar, marcar_obstaculos=False)  # los choques simulados no crean obstáculos
         print("Robot simulado corriendo. Ctrl+C para salir.")
+        print("Cada segundo verás la línea que manda el robot y su estado.\n", flush=True)
         while True:
             with db.conectar() as con:
                 puente.atender_comandos(con)
-                puente.procesar(sim.leer(puente), con)
+                trama = sim.leer(puente)
+                puente.procesar(trama, con)
+            cx = int(puente.x / db.CELDA_M)
+            cy = int(puente.y / db.CELDA_M)
+            bat = bateria_pct(int(trama.split(",")[11]))
+            print(f"robot → Pi   {trama}", flush=True)
+            print(f"             modo: {puente.modo:<11} celda: ({cx}, {cy})   batería: {bat} %", flush=True)
             time.sleep(1.0)
     else:
         import serial  # pip install pyserial
