@@ -31,6 +31,8 @@ python3 puente_robot.py         # lee el ESP32 por /dev/ttyUSB0
 python3 mqtt_estacion.py        # recibe la estación base por MQTT
 ```
 
+Antes de `mqtt_estacion.py`, copia `servidor/.env.ejemplo` como `servidor/.env` y escribe la contraseña del broker (usuario `roomba`). El archivo `.env` no se sube a GitHub.
+
 Sin el robot armado se puede probar todo así:
 
 ```bash
@@ -45,12 +47,36 @@ En la app: **Ajustes → Robot real**, escribe `http://<IP de la Pi>:5000` (la I
 
 | Conexión | Protocolo | Detalle |
 |---|---|---|
-| ESP32 ↔ Pi | Serial USB | Trama `S,...` 20 veces por segundo; la Pi responde `M,`, `C,` y `X` |
-| Estación ESP8266 ↔ Pi | **MQTT** | `sweepsense/base/estado` (cada 2 s) y `sweepsense/base/cmd` (`faro_on`/`faro_off`) |
+| ESP32 ↔ Pi | Serial USB | Trama `S,...` cada 200 ms (5 por segundo); la Pi responde `M,`, `C,`, `X`, `R` y `Z` (abajo) |
+| Estación ESP8266 ↔ Pi | **MQTT** | `roomba/base/en_linea`, `roomba/base/cargando`, `roomba/base/corriente_ma` y `roomba/base/faro`; la Pi manda `roomba/base/faro/set` (`1`/`0`) y publica su modo en `roomba/pi/modo` |
 | App ↔ Pi | **HTTP** | API REST en JSON (tabla de abajo) |
 | Alexa → Pi | **HTTP** | `POST /api/comando` con `"origen": "alexa"` |
 
 La app pide el estado cada 2 s y los comandos se guardan en la tabla `comandos`; el puente los lee y los manda al ESP32. Así la base de datos es el punto de comunicación entre dispositivos y de control en tiempo real.
+
+### Protocolo ESP32 ↔ Pi (USB, 115200 baudios)
+
+El ESP32 manda una línea cada 200 ms con 16 campos:
+
+```
+S,t_ms,encI,encD,yaw,tof0,tof1,tof2,piso,bump,ir,mV,mA,fuga,estado,alerta
+```
+
+- `piso`: número de 0 a 15, un bit por sensor TCRT5000 (1 = ve el borde).
+- `ir`: 0 = no ve el faro, 1 = LED izquierdo, 2 = LED derecho.
+- `estado`: `ok`, `paro` o `fuga`. `alerta`: texto sin comas, `ninguna` si no hay.
+
+La Pi manda:
+
+| Comando | Qué hace |
+|---|---|
+| `M,vI,vD` | Velocidad de cada rueda (−1023 a 1023). Si pasan 0.5 s sin `M`, el ESP32 frena. |
+| `C,turbina,cepillo,bomba` | Turbina en % (0 o de 50 a 100) y bomba (0/1). El cepillo va con la turbina en el mismo MOSFET, así que el ESP32 ignora ese campo. |
+| `X` | Paro. Se queda trabado hasta que llega `R`; el ESP32 avisa con `estado` = `paro` y la Pi pasa a `pausado`. |
+| `R` | Quita el paro (la Pi lo manda al iniciar, reanudar o regresar). |
+| `Z` | Pone el yaw en 0 (la Pi lo manda cuando la estación avisa que el robot está cargando). |
+
+La batería se calcula igual en la Pi y en el ESP32: 10.5 V = 0 % y 12.6 V = 100 %.
 
 ## 4. API
 
@@ -78,6 +104,6 @@ Batería, voltaje y corriente, tiempo limpiando, cobertura (%), área limpiada (
 
 - **Navegación (Adrián):** reemplazar `servidor/navegacion.py` manteniendo los métodos `iniciar`, `paso`, `termino`, `detener` y `regresar`.
 - **Encoders:** medir `CUENTAS_POR_VUELTA` en `puente_robot.py` (10 vueltas a mano).
-- **Estación:** el sketch `estacion_base.ino` de la guía ya usa los temas MQTT correctos; solo cambiar `MQTT_HOST` por la IP de la Pi.
+- **Estación:** el sketch `estacion_base.ino` del proyecto usa los temas `roomba/base/...` de arriba; solo hay que poner la IP de la Pi en su `config.h`.
 - **Alexa (Javier):** que la skill mande `POST /api/comando`. Para eso la API debe ser accesible desde internet (túnel HTTPS con Cloudflare Tunnel o ngrok).
-- **Firmware del ESP32:** ya no necesita Wi-Fi ni Blynk, porque todo pasa por la Pi. Con el Wi-Fi apagado, los pines ADC2 vuelven a funcionar.
+- **Firmware del ESP32 (José):** la navegación usa solo el USB. El ESP32 **sí** conserva el Wi-Fi para publicar en MQTT (`roomba/robot/...`) y recibir un paro desde la app MQTT, así que los pines ADC2 siguen sin usarse.
