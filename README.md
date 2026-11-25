@@ -33,6 +33,15 @@ python3 mqtt_estacion.py        # recibe la estación base por MQTT
 
 Antes de `mqtt_estacion.py`, copia `servidor/.env.ejemplo` como `servidor/.env` y escribe la contraseña del broker (usuario `roomba`). El archivo `.env` no se sube a GitHub.
 
+Para revisar el ESP32 real antes de correr el puente (con el puente detenido):
+
+```bash
+python3 probar_robot.py                      # tramas, sensores y paro; no mueve nada
+python3 probar_robot.py --motores --turbina  # además ruedas y turbina (robot levantado)
+```
+
+Al final dice PASA o FALLA en cada prueba.
+
 Sin el robot armado se puede probar todo así:
 
 ```bash
